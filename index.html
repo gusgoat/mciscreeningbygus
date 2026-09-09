@@ -5,7 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>แบบทดสอบสภาพสมองเบื้องต้น</title>
 <script src="https://cdn.tailwindcss.com"></script>
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
 <style> body { margin:0; } </style>
 </head>
 <body>
@@ -13,30 +15,61 @@
   <div style="padding:24px;color:#5d6f73;">กำลังโหลด… (ครั้งแรกอาจใช้เวลาสักครู่)</div>
 </div>
 
-<script type="text/babel" data-type="module" data-presets="react">
-import React, { useState, useMemo, useEffect, useRef } from "https://esm.sh/react@18.2.0";
-import { createRoot } from "https://esm.sh/react-dom@18.2.0/client";
-import {
-  Brain, ClipboardList, ArrowRight, ArrowLeft, RotateCcw, Printer, Check,
-  AlertTriangle, User, Lightbulb, Info, Clock, ImagePlus
-} from "https://esm.sh/lucide-react@0.383.0?deps=react@18.2.0";
+<script>
+// ถ้าโหลดไลบรารีจาก CDN ไม่สำเร็จ ให้แจ้งแทนการค้างนิ่ง
+window.addEventListener('error', function (ev) {
+  var r = document.getElementById('root');
+  if (r && r.innerText.indexOf('กำลังโหลด') !== -1) {
+    r.innerHTML = '<div style="padding:24px;color:#b00020;font-family:system-ui;line-height:1.6">'
+      + 'โหลดไม่สำเร็จ ตรวจการเชื่อมต่ออินเทอร์เน็ตแล้วรีเฟรชหน้าใหม่<br><small>' + (ev.message || '') + '</small></div>';
+  }
+}, true);
+window.addEventListener('load', function () {
+  if (!(window.React && window.ReactDOM && window.Babel)) {
+    var r = document.getElementById('root');
+    if (r) r.innerHTML = '<div style="padding:24px;color:#b00020;font-family:system-ui;line-height:1.6">'
+      + 'โหลดไลบรารีจากอินเทอร์เน็ตไม่สำเร็จ (React/Babel) — โปรดเชื่อมต่อเน็ตแล้วรีเฟรช</div>';
+  }
+});
+</script>
 
-/* แทน window.storage ของ Claude ด้วยที่เก็บของเบราว์เซอร์ (localStorage) เพื่อจดจำรูปข้ามครั้ง */
+<script type="text/babel" data-presets="react">
+/* ---- ที่เก็บข้อมูลของเบราว์เซอร์ แทน window.storage ของ Claude ---- */
 if (!window.storage) {
   window.storage = {
-    async get(key) { const v = localStorage.getItem(key); return v == null ? null : { key, value: v }; },
-    async set(key, value) { localStorage.setItem(key, value); return { key, value }; },
-    async delete(key) { localStorage.removeItem(key); return { key, deleted: true }; },
-    async list(prefix = "") {
-      const keys = [];
-      for (let i = 0; i < localStorage.length; i++) {
-        const k = localStorage.key(i);
-        if (k && k.startsWith(prefix)) keys.push(k);
-      }
-      return { keys };
-    },
+    async get(key){ const v = localStorage.getItem(key); return v==null?null:{key,value:v}; },
+    async set(key,value){ localStorage.setItem(key,value); return {key,value}; },
+    async delete(key){ localStorage.removeItem(key); return {key,deleted:true}; },
+    async list(prefix=""){ const keys=[]; for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i); if(k&&k.startsWith(prefix))keys.push(k);} return {keys}; }
   };
 }
+
+const { useState, useMemo, useEffect, useRef } = React;
+const { createRoot } = ReactDOM;
+
+/* ---- ไอคอน (วาดเองแบบ Lucide เพื่อไม่ต้องพึ่งไลบรารีภายนอก) ---- */
+function Icon({ size = 24, color, style, strokeWidth = 2, children }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
+      stroke={color || "currentColor"} strokeWidth={strokeWidth}
+      strokeLinecap="round" strokeLinejoin="round" style={style}>
+      {children}
+    </svg>
+  );
+}
+const Brain = (p) => <Icon {...p}><path d="M9 4a2.5 2.5 0 0 0-2.5 2.5A2.5 2.5 0 0 0 4 9a2.5 2.5 0 0 0 .5 4.5A2.5 2.5 0 0 0 7 18a2.5 2.5 0 0 0 5 .5 2.5 2.5 0 0 0 5-.5 2.5 2.5 0 0 0 2.5-4.5A2.5 2.5 0 0 0 20 9a2.5 2.5 0 0 0-2.5-2.5A2.5 2.5 0 0 0 15 4a2.5 2.5 0 0 0-3 1 2.5 2.5 0 0 0-3-1z"/><path d="M12 5v14"/></Icon>;
+const ClipboardList = (p) => <Icon {...p}><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M9 8h.01M9 12h6M9 16h6"/></Icon>;
+const ArrowRight = (p) => <Icon {...p}><path d="M5 12h14M13 5l7 7-7 7"/></Icon>;
+const ArrowLeft = (p) => <Icon {...p}><path d="M19 12H5M11 5l-7 7 7 7"/></Icon>;
+const RotateCcw = (p) => <Icon {...p}><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></Icon>;
+const Printer = (p) => <Icon {...p}><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8" rx="1"/></Icon>;
+const Check = (p) => <Icon {...p}><path d="M20 6 9 17l-5-5"/></Icon>;
+const AlertTriangle = (p) => <Icon {...p}><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></Icon>;
+const User = (p) => <Icon {...p}><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></Icon>;
+const Lightbulb = (p) => <Icon {...p}><path d="M9 18h6M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.1V17h6v-.2c0-.8.4-1.6 1-2.1A7 7 0 0 0 12 2z"/></Icon>;
+const Info = (p) => <Icon {...p}><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></Icon>;
+const Clock = (p) => <Icon {...p}><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></Icon>;
+const ImagePlus = (p) => <Icon {...p}><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7"/><path d="M16 5h6M19 2v6"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/></Icon>;
 
 
 /* ===================================================================
@@ -762,7 +795,7 @@ function GhostButton({ children, onClick }) {
 /* ===================================================================
    หน้าจอหลัก
    =================================================================== */
-export default function App() {
+function App() {
   const [screen, setScreen] = useState("intro"); // intro | register | test | results
   const [patient, setPatient] = useState({ name: "", age: "" });
   const [wordSet, setWordSet] = useState(DEFAULT_WORDS);
@@ -1653,8 +1686,15 @@ function Disclaimer() {
   );
 }
 
-const _root = createRoot(document.getElementById("root"));
-_root.render(React.createElement(App));
+try {
+  const _root = createRoot(document.getElementById("root"));
+  _root.render(<App />);
+} catch (e) {
+  document.getElementById("root").innerHTML =
+    '<div style="padding:24px;color:#b00020;font-family:system-ui;line-height:1.6">เกิดข้อผิดพลาดในการแสดงผล:<br><small>'
+    + (e && e.message ? e.message : e) + '</small></div>';
+  console.error(e);
+}
 </script>
 </body>
 </html>
